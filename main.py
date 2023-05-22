@@ -193,29 +193,33 @@ with contextlib.ExitStack() as stack:
     print(f"First measurement needs to be on {distancesToRunOn[distanceId]}m")
     syncMessages = MessageSync(3, 0.003, 20, 2)
     while True:
+        if recording:
+            frameCount += 1
         for mxId in mxIDs:
             frames = {}
             framesList = []
-            for stream in allQueues[mxId].keys():
-                time.sleep(0.001)
-                frame = allQueues[mxId][stream].tryGet()
-                if frame is not None:
-                    syncMessages.add_msg(stream, frame)
-                frames = syncMessages.get_synced()
-                if frames is None:
-                    continue
-                if recording:
-                    frameCount += 1
-                for key in frames.keys():
-                    frames[key] = frames[key].getCvFrame()
-                    framesList.append(frames[key])
-                mergedImage = cv2.hconcat(framesList)
-                mergedImage = cv2.resize(mergedImage, (900, 150))
-                cv2.imshow(mxId, mergedImage)
-                if not recording:
-                    continue
-                if frameCount < 10:
-                    videoWriters[mxId][stream].write(frames[stream])
+            while True:
+                for stream in allQueues[mxId].keys():
+                    time.sleep(0.001)
+                    frame = allQueues[mxId][stream].tryGet()
+                    if frame is not None:
+                        syncMessages.add_msg(stream, frame)
+                    frames = syncMessages.get_synced()
+                    if frames is not None:
+                        break
+                if frames is not None:
+                    break
+
+            for key in frames.keys():
+                frames[key] = frames[key].getCvFrame()
+                framesList.append(frames[key])
+            mergedImage = cv2.hconcat(framesList)
+            mergedImage = cv2.resize(mergedImage, (900, 150))
+            cv2.imshow(mxId, mergedImage)
+            if not recording:
+                continue
+            if frameCount < 10:
+                videoWriters[mxId][stream].write(frames[stream])
 
         if frameCount >= 10:
             recording = False
