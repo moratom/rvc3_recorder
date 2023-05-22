@@ -33,7 +33,7 @@ mapSocketsStr = {
     str(dai.CameraBoardSocket.VERTICAL): "camd,c"
 }
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
+fourcc = cv2.VideoWriter_fourcc(*'I420')
 sockets = [dai.CameraBoardSocket.LEFT, dai.CameraBoardSocket.RIGHT, dai.CameraBoardSocket.VERTICAL]
 
 def createPipeline():
@@ -117,7 +117,7 @@ with contextlib.ExitStack() as stack:
             mergedImage = cv2.hconcat(framesList)
             mergedImage = cv2.resize(mergedImage, (900, 150))
             cv2.imshow(mxId, mergedImage)
-        if frameCount > 10:
+        if frameCount >= 10:
             recording = False
             frameCount = 0
             print(f"Recording on {distancesToRunOn[distanceId]}m is done.")
