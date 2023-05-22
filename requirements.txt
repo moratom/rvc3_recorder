@@ -1,0 +1,3 @@
+depthai==2.19.1.0.dev0+037557bd0283c6879cf0eed404946b333430227b
+numpy==1.24.3
+opencv-python==4.7.0.72
