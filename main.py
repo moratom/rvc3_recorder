@@ -148,7 +148,7 @@ def createPipeline():
 
 
 def get_base_path(mxId, distance):
-    return Path(Path(args.outputDir) / f"camera_{mxId}" / args.side / f"{distance}m" / f"1-{mxId}")
+    return Path(Path(args.outputDir) / f"camera_{mxId}" / f"{distance}m" / args.side / f"1-{mxId}")
 
 with contextlib.ExitStack() as stack:
     deviceInfos = dai.Device.getAllAvailableDevices()
