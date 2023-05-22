@@ -56,6 +56,9 @@ def createPipeline():
     return pipeline, streamNames
 
 
+def get_base_path(mxId, distance):
+    return Path(Path(args.outputDir) / f"camera_{mxId}" / args.side / f"{distance}m" / f"1-{mxId}")
+
 with contextlib.ExitStack() as stack:
     deviceInfos = dai.Device.getAllAvailableDevices()
     if len(deviceInfos) == 0:
@@ -85,29 +88,55 @@ with contextlib.ExitStack() as stack:
 
         outputQueues = {}
         videoWriters[mxId] = {}
+        basePath = get_base_path(mxId, distancesToRunOn[0])
+        basePath.mkdir(parents=True, exist_ok=True)
         for name in streamNames:
             queue = device.getOutputQueue(name, 4, blocking=True)
             outputQueues[name] = queue
-            videoPath = Path(Path(args.outputDir) / f"camera_{mxId}" / args.side / "3.0m" / f"1-{mxId}/{mapSocketsStr[name]}.avi")
-            videoPath.parent.mkdir(parents=True, exist_ok=True)
+            videoPath = basePath / f"{mapSocketsStr[name]}.avi"
             videoWriters[mxId][name] = cv2.VideoWriter(str(videoPath.absolute()), fourcc, args.fps, (1920, 1200))
         allQueues[mxId] = outputQueues
-    i = 0
+    frameCount = 0
+    distanceId = 0
+    recording = False
+    print(f"First measurement needs to be on {distancesToRunOn[distanceId]}m")
     while True:
-        i += 1
+        if recording:
+            frameCount += 1
         for mxId in mxIDs:
             frames = {}
             framesList = []
             for stream in allQueues[mxId].keys():
                 frames[stream] = allQueues[mxId][stream].get().getCvFrame()
                 framesList.append(frames[stream])
-                if i < 10:
+                if not recording:
+                    continue
+                if frameCount < 10:
                     videoWriters[mxId][stream].write(frames[stream])
-                else:
-                    print("No more recording")
+
             mergedImage = cv2.hconcat(framesList)
             mergedImage = cv2.resize(mergedImage, (900, 150))
             cv2.imshow(mxId, mergedImage)
-
-        if cv2.waitKey(1) == ord('q'):
+        if frameCount > 10:
+            recording = False
+            frameCount = 0
+            print(f"Recording on {distancesToRunOn[distanceId]}m is done.")
+            distanceId += 1
+            if distanceId >= len(distancesToRunOn):
+                print("All measurements are done.")
+                break
+            print(f"Now measure on distance {distancesToRunOn[distanceId]}m.")
+            for mxId in mxIDs:
+                for stream in allQueues[mxId].keys():
+                    basePath = get_base_path(mxId, distancesToRunOn[distanceId])
+                    basePath.mkdir(parents=True, exist_ok=True)
+                    videoPath = basePath / f"{mapSocketsStr[stream]}.avi"
+                    videoWriters[mxId][stream].release()
+                    videoWriters[mxId][stream] = cv2.VideoWriter(str(videoPath.absolute()), fourcc, args.fps, (1920, 1200))
+        cvKey = cv2.waitKey(1)
+        if cvKey == ord('q'):
             break
+        if cvKey == ord('r'):
+            print("Start recording")
+            recording = True
+            frameCount = 0
