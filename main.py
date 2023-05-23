@@ -218,8 +218,9 @@ with contextlib.ExitStack() as stack:
             cv2.imshow(mxId, mergedImage)
             if not recording:
                 continue
-            if frameCount < 10:
-                videoWriters[mxId][stream].write(frames[stream])
+            for stream in allQueues[mxId].keys():
+                if frameCount < 10:
+                    videoWriters[mxId][stream].write(frames[stream])
 
         if frameCount >= 10:
             recording = False
