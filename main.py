@@ -66,13 +66,16 @@ class MessageSync:
 
     def get_synced(self):
 
+        if len(self.queues) < self.num_queues:
+            # print('Status:', 'exited due to len(queues) < num_queues', self.queues)
+            return None
         # Atleast 3 messages should be buffered
         min_len = min([len(queue) for queue in self.queues.values()])
         if min_len == 0:
             # print('Status:', 'exited due to min len == 0', self.queues)
             return None
 
-        # initializing list of list 
+        # initializing list of list
         queue_lengths = []
         for name in self.queues.keys():
             queue_lengths.append(range(0, len(self.queues[name])))
@@ -162,6 +165,7 @@ with contextlib.ExitStack() as stack:
     mxIDs = []
     allQueues = {}
     videoWriters = {}
+    syncs = {}
     for deviceInfo in deviceInfos:
         deviceInfo: dai.DeviceInfo
         device: dai.Device = stack.enter_context(dai.Device(openVinoVersion, deviceInfo, usbSpeed))
@@ -187,11 +191,12 @@ with contextlib.ExitStack() as stack:
             videoPath = basePath / f"{mapSocketsStr[name]}.avi"
             videoWriters[mxId][name] = cv2.VideoWriter(str(videoPath.absolute()), fourcc, args.fps, (1920, 1200))
         allQueues[mxId] = outputQueues
+        syncs[mxId] = MessageSync(3, 0.003, 20, 2)
+        print(syncs[mxId])
     frameCount = 0
     distanceId = 0
     recording = False
     print(f"First measurement needs to be on {distancesToRunOn[distanceId]}m")
-    syncMessages = MessageSync(3, 0.003, 20, 2)
     while True:
         if recording:
             frameCount += 1
@@ -203,8 +208,8 @@ with contextlib.ExitStack() as stack:
                     time.sleep(0.001)
                     frame = allQueues[mxId][stream].tryGet()
                     if frame is not None:
-                        syncMessages.add_msg(stream, frame)
-                    frames = syncMessages.get_synced()
+                        syncs[mxId].add_msg(stream, frame)
+                    frames = syncs[mxId].get_synced()
                     if frames is not None:
                         break
                 if frames is not None:
