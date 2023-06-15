@@ -17,6 +17,10 @@ When using more devices - make sure to lower the fps enough so network can handl
 When all previews are running, press `r` to record the video. Recording automatically stops after framesToRecord number of frames are recorded and the script gives an instruction on
 what's the next distance to record.
 
+Example run:
+```
+python main.py --side center --minDistance 5 --maxDistance 15 --outputDir ~/TestDataset -fps 3  --step 1
+```
 
 Usage:
 ```
